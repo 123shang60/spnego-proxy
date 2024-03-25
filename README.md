@@ -1,2 +1,2 @@
-# gssapi-proxy
-HTTP GSSAPI proxy
+# spnego-proxy
+HTTP spnego proxy
