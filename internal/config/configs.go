@@ -12,4 +12,12 @@ type Config struct {
 		DisablePAFXFAST    bool
 		SPNHostsMapping    map[string]string
 	}
+	Log struct {
+		Level string
+	}
+	Server struct {
+		Port int32
+	}
 }
+
+var C = new(Config)

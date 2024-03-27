@@ -3,6 +3,7 @@ package proxy
 import (
 	"log"
 
+	serverConfig "github.com/123shang60/spnego-proxy/internal/config"
 	"github.com/jcmturner/gokrb5/v8/client"
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/keytab"
@@ -11,26 +12,34 @@ import (
 
 var krb5Client *client.Client
 
-func InitKrb5Cli() {
-	cfg, err := config.Load("/etc/security/xh_krb5.conf")
+func InitKrb5Cli() error {
+	cfg, err := config.Load(serverConfig.C.Auth.KerberosConfigPath)
 	if err != nil {
-		logrus.Error("加载 krb5.conf 失败！")
-		logrus.Fatal(err)
+		logrus.Error("加载 krb5.conf 失败！", err)
+		return err
 	}
 
-	ktFile, err := keytab.Load("/root/demo.keytab")
+	ktFile, err := keytab.Load(serverConfig.C.Auth.KeyTabPath)
 	if err != nil {
-		logrus.Error("加载 /root/user.keytab 失败！")
-		logrus.Fatal(err)
+		logrus.Error("加载 keytab 文件失败！", err)
+		return err
 	}
 
-	l := log.New(logrus.StandardLogger().Out, "GOKRB5 Client: ", log.Ldate|log.Ltime|log.Lshortfile)
+	var l *log.Logger
 
-	krb5Client = client.NewWithKeytab("noah", "HADOOP.COM", ktFile, cfg, client.Logger(l))
+	if logrus.GetLevel() == logrus.DebugLevel {
+		l = log.New(logrus.StandardLogger().Out, "GOKRB5 Client: ", log.Ldate|log.Ltime|log.Lshortfile)
+	}
+
+	krb5Client = client.NewWithKeytab(serverConfig.C.Auth.ServiceName, serverConfig.C.Auth.Realm, ktFile, cfg, client.DisablePAFXFAST(serverConfig.C.Auth.DisablePAFXFAST), client.Logger(l))
 
 	err = krb5Client.Login()
 	if err != nil {
-		logrus.Error("kerberos 认证失败！")
-		logrus.Fatal(err)
+		logrus.Error("kerberos 认证失败！", err)
+		return err
 	}
+
+	logrus.Info("kerberos 认证成功！client 缓存已建立！")
+
+	return nil
 }
