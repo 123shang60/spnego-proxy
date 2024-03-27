@@ -9,6 +9,7 @@ import (
 	"github.com/123shang60/spnego-proxy/internal/proxy"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	ginprometheus "github.com/mcuadros/go-gin-prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -35,6 +36,7 @@ func init() {
 	Server.Flags().StringVar(&config.C.Log.Level, "log-level", "info", "The log level")
 	Server.Flags().Int32Var(&config.C.Server.Port, "port", 8080, "The port to listen on")
 	Server.Flags().BoolVar(&config.C.Server.EnablePprof, "enable-pprof", false, "Enable pprof")
+	Server.Flags().BoolVar(&config.C.Server.EnablePrometheus, "enable-prometheus", false, "Enable prometheus target")
 }
 
 func Run(_ *cobra.Command, _ []string) {
@@ -51,6 +53,11 @@ func Run(_ *cobra.Command, _ []string) {
 
 	if config.C.Server.EnablePprof {
 		pprof.Register(engine)
+	}
+
+	if config.C.Server.EnablePrometheus {
+		p := ginprometheus.NewPrometheus("gin")
+		p.Use(engine)
 	}
 
 	engine.NoRoute(func(ctx *gin.Context) {

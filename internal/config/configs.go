@@ -16,8 +16,9 @@ type Config struct {
 		Level string
 	}
 	Server struct {
-		Port        int32
-		EnablePprof bool
+		Port             int32
+		EnablePprof      bool
+		EnablePrometheus bool
 	}
 }
 
