@@ -7,6 +7,7 @@ import (
 	"github.com/123shang60/spnego-proxy/internal/common"
 	"github.com/123shang60/spnego-proxy/internal/config"
 	"github.com/123shang60/spnego-proxy/internal/proxy"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,6 +34,7 @@ func init() {
 	Server.Flags().StringToStringVar(&config.C.Auth.SPNHostsMapping, "spn-hosts-mapping", nil, "A mapping of SPNs to hosts")
 	Server.Flags().StringVar(&config.C.Log.Level, "log-level", "info", "The log level")
 	Server.Flags().Int32Var(&config.C.Server.Port, "port", 8080, "The port to listen on")
+	Server.Flags().BoolVar(&config.C.Server.EnablePprof, "enable-pprof", false, "Enable pprof")
 }
 
 func Run(_ *cobra.Command, _ []string) {
@@ -46,6 +48,10 @@ func Run(_ *cobra.Command, _ []string) {
 
 	engine.Use(gin.Recovery())
 	engine.Use(ginLogger())
+
+	if config.C.Server.EnablePprof {
+		pprof.Register(engine)
+	}
 
 	engine.NoRoute(func(ctx *gin.Context) {
 		path := ctx.Request.URL.Path
