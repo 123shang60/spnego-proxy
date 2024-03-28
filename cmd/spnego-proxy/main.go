@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/123shang60/spnego-proxy/internal/common"
@@ -27,6 +29,9 @@ var Server = &cobra.Command{
 
 func init() {
 	Server.Flags().StringVar(&config.C.Porxy.TargetUrl, "target-url", "", "The target URL to proxy requests to")
+
+	config.C.Porxy.TargetUrl = strings.TrimSuffix(config.C.Porxy.TargetUrl, "/")
+
 	Server.Flags().StringVar(&config.C.Auth.KeyTabPath, "keytab-path", "", "The path to the keytab file")
 	Server.Flags().StringVar(&config.C.Auth.KerberosConfigPath, "kerberos-config-path", "/etc/krb5.conf", "The path to the kerberos config file")
 	Server.Flags().StringVar(&config.C.Auth.ServiceName, "servicename", "HTTP", "The service name")
@@ -40,12 +45,20 @@ func init() {
 }
 
 func Run(_ *cobra.Command, _ []string) {
+	configRaw, _ := json.Marshal(config.C)
+	logrus.Infof("启动配置: %s", string(configRaw))
+
 	// 先认证 krb5
 	if err := proxy.InitKrb5Cli(); err != nil {
 		logrus.Fatal("krb5 认证失败！", err)
 	}
 
 	// 启动 gin 代理服务
+	if config.C.Log.Level == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	engine := gin.New()
 
 	engine.Use(gin.Recovery())
@@ -95,16 +108,30 @@ func ginLogger() gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
-		logrus.Debugf("gin request: %s - [%s] \"%s %s %s %d %s \"%s\" %d\"\n",
-			clientIP,
-			stop.Format(time.RFC1123),
-			method,
-			path,
-			c.Request.Proto,
-			statusCode,
-			latency,
-			c.Request.UserAgent(),
-			bodySize,
-		)
+		if statusCode >= 400 {
+			logrus.Errorf("gin request: %s - [%s] \"%s %s %s %d %s \"%s\" %d\"\n",
+				clientIP,
+				stop.Format(time.RFC1123),
+				method,
+				path,
+				c.Request.Proto,
+				statusCode,
+				latency,
+				c.Request.UserAgent(),
+				bodySize,
+			)
+		} else {
+			logrus.Debugf("gin request: %s - [%s] \"%s %s %s %d %s \"%s\" %d\"\n",
+				clientIP,
+				stop.Format(time.RFC1123),
+				method,
+				path,
+				c.Request.Proto,
+				statusCode,
+				latency,
+				c.Request.UserAgent(),
+				bodySize,
+			)
+		}
 	}
 }

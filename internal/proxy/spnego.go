@@ -15,6 +15,8 @@ import (
 )
 
 func DoSpnego(c *gin.Context) {
+	logrus.Debugf("收到请求- Method: %s, Path: %s", c.Request.Method, c.Request.URL.Path)
+
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
@@ -27,7 +29,7 @@ func DoSpnego(c *gin.Context) {
 		MaxIdleConnsPerHost:   100,
 	}
 	client := &http.Client{Transport: transport}
-	url := fmt.Sprintf("%s/%s", config.C.Porxy.TargetUrl, c.Request.URL.Path)
+	url := fmt.Sprintf("%s/%s", config.C.Porxy.TargetUrl, strings.TrimPrefix(c.Request.URL.Path, "/"))
 	if c.Request.URL.RawQuery != "" {
 		url += "?" + c.Request.URL.RawQuery
 	}
@@ -40,15 +42,20 @@ func DoSpnego(c *gin.Context) {
 	}
 	defer r.Body.Close()
 
-	host := strings.SplitN(strings.SplitN(config.C.Porxy.TargetUrl, "://", 2)[0], ":", 2)[0]
+	r.Header = c.Request.Header.Clone()
+	r.Header.Del("Authorization")
+
+	host := strings.SplitN(strings.SplitN(config.C.Porxy.TargetUrl, "://", 2)[1], ":", 2)[0]
 
 	if h, ok := config.C.Auth.SPNHostsMapping[host]; ok && h != "" {
 		host = h
 	}
 
-	logrus.Debugf("认证使用的 SPN : %s", host)
+	spn := fmt.Sprintf("HTTP/%s", host)
 
-	spnegoCl := spnego.NewClient(krb5Client, client, host)
+	logrus.Debugf("认证使用的 SPN : %s", spn)
+
+	spnegoCl := spnego.NewClient(krb5Client, client, spn)
 	resp, err := spnegoCl.Do(r)
 	if err != nil {
 		logrus.Error("spnego 认证失败！", err)
@@ -63,6 +70,7 @@ func DoSpnego(c *gin.Context) {
 	}
 
 	data, _ := io.ReadAll(resp.Body)
+	logrus.Debugf("请求返回- Path: %s, StatusCode: %d, Body: %s", c.Request.URL.Path, resp.StatusCode, string(data))
 	c.Writer.WriteHeader(resp.StatusCode)
 	c.Writer.Write(data)
 }
