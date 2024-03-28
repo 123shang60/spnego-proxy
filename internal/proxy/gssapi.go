@@ -31,7 +31,7 @@ func InitKrb5Cli() error {
 		l = log.New(logrus.StandardLogger().Out, "GOKRB5 Client: ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
 
-	krb5Client = client.NewWithKeytab(serverConfig.C.Auth.ServiceName, serverConfig.C.Auth.Realm, ktFile, cfg, client.DisablePAFXFAST(serverConfig.C.Auth.DisablePAFXFAST), client.Logger(l))
+	krb5Client = client.NewWithKeytab(serverConfig.C.Auth.UserName, serverConfig.C.Auth.Realm, ktFile, cfg, client.DisablePAFXFAST(serverConfig.C.Auth.DisablePAFXFAST), client.Logger(l))
 
 	err = krb5Client.Login()
 	if err != nil {

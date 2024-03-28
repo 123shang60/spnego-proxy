@@ -8,6 +8,7 @@ type Config struct {
 		KeyTabPath         string
 		KerberosConfigPath string
 		ServiceName        string
+		UserName           string
 		Realm              string
 		DisablePAFXFAST    bool
 		SPNHostsMapping    map[string]string

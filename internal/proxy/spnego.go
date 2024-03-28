@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/123shang60/spnego-proxy/internal/config"
@@ -14,8 +15,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	spn          string
+	loadIconOnce sync.Once
+)
+
+func getSpn() {
+	host := strings.SplitN(strings.SplitN(config.C.Porxy.TargetUrl, "://", 2)[1], ":", 2)[0]
+
+	if h, ok := config.C.Auth.SPNHostsMapping[host]; ok && h != "" {
+		host = h
+	}
+
+	spn = fmt.Sprintf("%s/%s", config.C.Auth.ServiceName, host)
+
+	logrus.Debugf("生成认证使用的 SPN : %s", spn)
+}
+
 func DoSpnego(c *gin.Context) {
 	logrus.Debugf("收到请求- Method: %s, Path: %s", c.Request.Method, c.Request.URL.Path)
+	loadIconOnce.Do(getSpn)
 
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
@@ -45,16 +64,7 @@ func DoSpnego(c *gin.Context) {
 	r.Header = c.Request.Header.Clone()
 	r.Header.Del("Authorization")
 
-	host := strings.SplitN(strings.SplitN(config.C.Porxy.TargetUrl, "://", 2)[1], ":", 2)[0]
-
-	if h, ok := config.C.Auth.SPNHostsMapping[host]; ok && h != "" {
-		host = h
-	}
-
-	spn := fmt.Sprintf("HTTP/%s", host)
-
-	logrus.Debugf("认证使用的 SPN : %s", spn)
-
+	logrus.Debugf("本次请求的 SPN: %s", spn)
 	spnegoCl := spnego.NewClient(krb5Client, client, spn)
 	resp, err := spnegoCl.Do(r)
 	if err != nil {

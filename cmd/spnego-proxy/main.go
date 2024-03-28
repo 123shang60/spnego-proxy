@@ -34,7 +34,8 @@ func init() {
 
 	Server.Flags().StringVar(&config.C.Auth.KeyTabPath, "keytab-path", "", "The path to the keytab file")
 	Server.Flags().StringVar(&config.C.Auth.KerberosConfigPath, "kerberos-config-path", "/etc/krb5.conf", "The path to the kerberos config file")
-	Server.Flags().StringVar(&config.C.Auth.ServiceName, "servicename", "HTTP", "The service name")
+	Server.Flags().StringVar(&config.C.Auth.ServiceName, "gssapi-servicename", "HTTP", "The gssapi service name")
+	Server.Flags().StringVar(&config.C.Auth.UserName, "gssapi-username", "HTTP", "The gssapi user name")
 	Server.Flags().StringVar(&config.C.Auth.Realm, "realm", "", "The realm")
 	Server.Flags().BoolVar(&config.C.Auth.DisablePAFXFAST, "disable-pafx-fast", false, "Disable the use of PA-FX-FAST")
 	Server.Flags().StringToStringVar(&config.C.Auth.SPNHostsMapping, "spn-hosts-mapping", nil, "A mapping of SPNs to hosts")
