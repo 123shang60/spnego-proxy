@@ -1,6 +1,6 @@
 module github.com/123shang60/spnego-proxy
 
-go 1.22
+go 1.22.1
 
 require (
 	github.com/gin-contrib/pprof v1.4.0
