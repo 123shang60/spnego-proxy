@@ -1,5 +1,7 @@
 IMPORT_PATH := github.com/123shang60/spnego-proxy/internal
 PACKAGE := spnego-proxy
+IMG ?= spnego-proxy:latest
+PLATFORM ?= linux/amd64,linux/arm64
 
 # params
 TIME			:= $(shell date '+%Y-%m-%d %H:%M:%S')
@@ -38,3 +40,6 @@ build:
 	@echo $(FLAGS)
 	@CGO_ENABLED=0 $(GOBUILD) $(FLAGS) -o $(BINPATH)/spnego-proxy main.go 
 	@echo "build spnego-proxy module done"
+
+container: ## Build and Push image
+	docker buildx build -f Dockerfile -t ${IMG} --platform=${PLATFORM} --push .
